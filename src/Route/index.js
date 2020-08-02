@@ -14,8 +14,7 @@ class Route {
 		this.fetchMock = fetchMock;
 		const debug = getDebug('compileRoute()');
 		debug('Compiling route');
-		this.init(args);
-		this.sanitize();
+		this.interpretArgs(args);
 		this.validate();
 		this.generateMatcher();
 		this.limit();
@@ -34,10 +33,11 @@ class Route {
 		}
 	}
 
-	init(args) {
+	interpretArgs(args) {
+		const debug = getDebug('sanitize()');
 		const [matcher, response, options = {}] = args;
 
-		const routeConfig = {};
+		const routeConfig = {...options};
 
 		if (isUrlMatcher(matcher) || isFunctionMatcher(matcher)) {
 			routeConfig.matcher = matcher;
@@ -49,32 +49,29 @@ class Route {
 			routeConfig.response = response;
 		}
 
-		Object.assign(routeConfig, options);
-		Object.assign(this, routeConfig);
-	}
+		if (isUrlMatcher(routeConfig.matcher)) {
+			debug('Mock uses a url matcher', routeConfig.matcher);
+			routeConfig.url = routeConfig.matcher;
+		} else {
+			routeConfig.functionMatcher = routeConfig.matcher
+		}
 
-	sanitize() {
-		const debug = getDebug('sanitize()');
+		delete routeConfig.matcher;
+
 		debug('Sanitizing route properties');
 
-		if (this.method) {
-			debug(`Converting method ${this.method} to lower case`);
-			this.method = this.method.toLowerCase();
+		if (routeConfig.method) {
+			debug(`Converting method ${routeConfig.method} to lower case`);
+			routeConfig.method = routeConfig.method.toLowerCase();
 		}
-		if (isUrlMatcher(this.matcher)) {
-			debug('Mock uses a url matcher', this.matcher);
-			this.url = this.matcher;
-			delete this.matcher;
-		}
-
-		this.functionMatcher = this.matcher || this.functionMatcher;
 
 		debug('Setting route.identifier...');
-		debug(`  route.name is ${this.name}`);
-		debug(`  route.url is ${this.url}`);
-		debug(`  route.functionMatcher is ${this.functionMatcher}`);
-		this.identifier = this.name || this.url || this.functionMatcher;
-		debug(`  -> route.identifier set to ${this.identifier}`);
+		debug(`  route.name is ${routeConfig.name}`);
+		debug(`  route.url is ${routeConfig.url}`);
+		debug(`  route.functionMatcher is ${routeConfig.functionMatcher}`);
+		routeConfig.identifier = routeConfig.name || routeConfig.url || routeConfig.functionMatcher;
+		debug(`  -> route.identifier set to ${routeConfig.identifier}`);
+		Object.assign(this, routeConfig);
 	}
 
 	generateMatcher() {
