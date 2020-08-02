@@ -1,4 +1,4 @@
-const builtInMatchers = require('./matchers');
+const builtInMatchers = require('./built-in-matchers');
 
 const { debug, setDebugNamespace, getDebug } = require('../lib/debug');
 
